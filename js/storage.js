@@ -46,6 +46,9 @@ export const store = {
     foods.unshift(food);
     write(KEYS.customFoods, foods);
   },
+  findCustomFoodByBarcode(barcode) {
+    return read(KEYS.customFoods, []).find((f) => f.barcode === barcode) || null;
+  },
 
   getWeekPlan() {
     return read(KEYS.week, null);

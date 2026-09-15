@@ -1,5 +1,6 @@
 import { store, todayKey, dateKeyForOffset } from "../storage.js";
-import { searchOpenFoodFacts } from "../foodApi.js";
+import { searchOpenFoodFacts, getProductByBarcode } from "../foodApi.js";
+import { scanBarcode } from "../barcodeScanner.js";
 import { uid } from "../state.js";
 
 const MEALS = ["Desayuno", "Comida", "Merienda", "Cena", "Otro"];
@@ -14,8 +15,11 @@ export function renderComidas(root) {
     </div>
 
     <div class="card">
-      <div class="field" style="margin-bottom:8px">
-        <input type="text" id="search-input" placeholder="Buscar alimento (ej. pechuga de pollo)" />
+      <div class="row" style="gap:8px;margin-bottom:8px">
+        <div class="field" style="margin-bottom:0;flex:1">
+          <input type="text" id="search-input" placeholder="Buscar alimento (ej. pechuga de pollo)" />
+        </div>
+        <button class="icon-btn" id="btn-scan" title="Escanear código de barras">📷</button>
       </div>
       <div id="search-results"></div>
       <button class="btn ghost" id="btn-custom">+ Crear alimento propio</button>
@@ -57,7 +61,32 @@ export function renderComidas(root) {
     }, 400);
   });
 
-  root.querySelector("#btn-custom").addEventListener("click", openCustomFoodModal);
+  root.querySelector("#btn-custom").addEventListener("click", () => openCustomFoodModal());
+  root.querySelector("#btn-scan").addEventListener("click", handleScan);
+
+  async function handleScan() {
+    const barcode = await scanBarcode();
+    if (!barcode) return;
+
+    const known = store.findCustomFoodByBarcode(barcode);
+    if (known) {
+      openQuantityModal(known);
+      return;
+    }
+
+    resultsBox.innerHTML = `<p class="label">Buscando producto del código ${barcode}…</p>`;
+    const product = await getProductByBarcode(barcode);
+
+    if (product) {
+      resultsBox.innerHTML = "";
+      openQuantityModal(product);
+    } else if (product === null) {
+      resultsBox.innerHTML = `<p class="label">Sin conexión para consultar el código de barras.</p>`;
+    } else {
+      resultsBox.innerHTML = `<p class="label">Código ${barcode} no encontrado en Open Food Facts. Créalo como alimento propio (se guardará para la próxima vez que lo escanees).</p>`;
+      openCustomFoodModal({ barcode });
+    }
+  }
 
   function renderFoodRows(container, foods) {
     container.innerHTML = foods.map((f, i) => foodRowHtml(f, i)).join("");
@@ -243,9 +272,10 @@ export function renderComidas(root) {
     });
   }
 
-  function openCustomFoodModal() {
+  function openCustomFoodModal({ barcode } = {}) {
     const modal = buildModal(`
       <h2>Alimento propio</h2>
+      ${barcode ? `<p class="label" style="margin-bottom:12px">Código de barras: ${escHtml(barcode)}</p>` : ""}
       <div class="field"><label>Nombre</label><input type="text" id="c-name" placeholder="Batido de proteína" /></div>
       <div class="field"><label>Kcal por 100g</label><input type="number" id="c-kcal" inputmode="decimal" /></div>
       <div class="field"><label>Proteína por 100g (g)</label><input type="number" id="c-pro" inputmode="decimal" /></div>
@@ -270,6 +300,7 @@ export function renderComidas(root) {
         carbs100: parseFloat(modal.querySelector("#c-carb").value) || 0,
         fat100: parseFloat(modal.querySelector("#c-fat").value) || 0,
       };
+      if (barcode) food.barcode = barcode;
       store.addCustomFood(food);
       closeModal(modal);
       openQuantityModal(food);

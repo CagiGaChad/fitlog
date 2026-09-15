@@ -1,4 +1,4 @@
-const CACHE_NAME = "fitlog-v3";
+const CACHE_NAME = "fitlog-v4";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -11,6 +11,8 @@ const APP_SHELL = [
   "./js/macros.js",
   "./js/foodApi.js",
   "./js/state.js",
+  "./js/barcodeScanner.js",
+  "./js/vendor/zxing.min.js",
   "./js/views/today.js",
   "./js/views/comidas.js",
   "./js/views/entrenos.js",

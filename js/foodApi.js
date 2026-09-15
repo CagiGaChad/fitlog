@@ -39,6 +39,38 @@ export async function searchOpenFoodFacts(query) {
   }
 }
 
+// Busca un producto por su código de barras (EAN/UPC) escaneado con la cámara.
+export async function getProductByBarcode(barcode) {
+  if (!barcode) return null;
+
+  const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json`;
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Respuesta no válida de Open Food Facts");
+    const data = await res.json();
+    if (data.status !== 1 || !data.product) return undefined; // undefined = no existe ese código
+
+    const p = data.product;
+    const n = p.nutriments || {};
+    if (!p.product_name || n["energy-kcal_100g"] == null) return undefined;
+
+    return {
+      id: `off_${barcode}`,
+      source: "off",
+      barcode,
+      name: p.brands ? `${p.product_name} (${p.brands})` : p.product_name,
+      kcal100: round1(n["energy-kcal_100g"]),
+      protein100: round1(n["proteins_100g"] || 0),
+      carbs100: round1(n["carbohydrates_100g"] || 0),
+      fat100: round1(n["fat_100g"] || 0),
+    };
+  } catch (e) {
+    console.error("Error buscando código de barras en Open Food Facts", e);
+    return null; // null = fallo de red, distinto de "no existe"
+  }
+}
+
 function round1(n) {
   return Math.round(n * 10) / 10;
 }
