@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<title>FitLog</title>
+<meta name="theme-color" content="#1b1b19" />
+<link rel="manifest" href="./manifest.json" />
+<link rel="apple-touch-icon" href="./icons/icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="FitLog" />
+<link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div id="app"></div>
+
+  <nav class="tabbar" id="tabbar">
+    <button class="tab" data-tab="today"><span>Hoy</span><span class="dot"></span></button>
+    <button class="tab" data-tab="comidas"><span>Comidas</span><span class="dot"></span></button>
+    <button class="tab" data-tab="entrenos"><span>Entrenos</span><span class="dot"></span></button>
+    <button class="tab" data-tab="progreso"><span>Progreso</span><span class="dot"></span></button>
+    <button class="tab" data-tab="ajustes"><span>Ajustes</span><span class="dot"></span></button>
+  </nav>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
