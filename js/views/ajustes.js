@@ -1,4 +1,4 @@
-import { store } from "../storage.js";
+import { store, todayKey } from "../storage.js";
 import { ACTIVITY_LEVELS, GOALS, calcGoals } from "../macros.js";
 
 export function renderAjustes(root, onSaved) {
@@ -80,6 +80,14 @@ export function renderAjustes(root, onSaved) {
       </div>
       <button class="btn secondary block" id="btn-save">Guardar</button>
     </div>
+
+    <div class="card flat">
+      <h3>Copia de seguridad</h3>
+      <p class="label" style="margin:6px 0 12px">Descarga tus datos (comidas, entrenos, peso, perfil) por si cambias de móvil o el navegador borra los datos. Restaura desde un archivo guardado.</p>
+      <button class="btn secondary block" id="btn-export" style="margin-bottom:10px">Descargar copia de seguridad</button>
+      <input type="file" id="import-file" accept="application/json" style="display:none" />
+      <button class="btn ghost" id="btn-import">Restaurar copia de seguridad</button>
+    </div>
   `;
 
   const sexBtns = root.querySelectorAll("#f-sex button");
@@ -154,6 +162,36 @@ export function renderAjustes(root, onSaved) {
       const b = root.querySelector("#btn-save");
       if (b) b.textContent = "Guardar";
     }, 1200);
+  });
+
+  root.querySelector("#btn-export").addEventListener("click", () => {
+    const data = store.exportAll();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `fitlog-backup-${todayKey()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  const importFile = root.querySelector("#import-file");
+  root.querySelector("#btn-import").addEventListener("click", () => importFile.click());
+  importFile.addEventListener("change", async () => {
+    const file = importFile.files[0];
+    importFile.value = "";
+    if (!file) return;
+    if (!confirm("Esto sobrescribirá tus datos actuales con los del archivo. ¿Continuar?")) return;
+    try {
+      const data = JSON.parse(await file.text());
+      store.importAll(data);
+      alert("Datos restaurados. La app se va a recargar.");
+      location.reload();
+    } catch (e) {
+      alert("El archivo no es una copia de seguridad válida.");
+    }
   });
 }
 

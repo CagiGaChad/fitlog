@@ -112,6 +112,20 @@ export const store = {
     const favs = read(KEYS.favorites, []).filter((f) => f.name.toLowerCase() !== name.toLowerCase());
     write(KEYS.favorites, favs);
   },
+
+  exportAll() {
+    const data = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("fitlog_")) data[key] = localStorage.getItem(key);
+    }
+    return data;
+  },
+  importAll(data) {
+    Object.entries(data).forEach(([key, value]) => {
+      if (key.startsWith("fitlog_")) localStorage.setItem(key, value);
+    });
+  },
 };
 
 export function todayKey(d = new Date()) {
