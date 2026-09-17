@@ -70,11 +70,24 @@ export interface ExerciseCheck {
   done: boolean;
 }
 
-export interface WeekDay {
-  day: string;
+export interface Workout {
+  id: string;
   name: string;
   notes: string;
   exercises: string[];
 }
 
+export interface WeekDay {
+  day: string;
+  workouts: Workout[];
+}
+
 export type WeekPlan = WeekDay[];
+
+// Forma antigua (un único entreno por día) guardada por versiones previas de la app.
+export interface LegacyWeekDay {
+  day: string;
+  name: string;
+  notes: string;
+  exercises: string[];
+}

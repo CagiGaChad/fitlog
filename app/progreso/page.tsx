@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { Card } from "@/components/Card";
 import { LineChart } from "@/components/charts/LineChart";
 import { BarChart } from "@/components/charts/BarChart";
-import { store, todayKey, dateKeyForOffset } from "@/lib/storage";
+import { store, todayKey, dateKeyForOffset, isoDayIndex } from "@/lib/storage";
 import { activeGoals, sumLog } from "@/lib/macros";
-import { hasProfile, uid } from "@/lib/state";
+import { ensureWeekPlan, hasProfile, uid } from "@/lib/state";
 import type { WeightEntry } from "@/lib/types";
 
 type Section = "peso" | "macros" | "entrenos";
@@ -170,29 +170,52 @@ function MacrosSection() {
   );
 }
 
+interface WorkoutDetail {
+  name: string;
+  exercises: { name: string; done: boolean }[] | null;
+}
+
 function EntrenosSection() {
   const DAYS = 28;
   const [cells, setCells] = useState<{ date: string; status: "none" | "partial" | "done" }[]>([]);
-  const [details, setDetails] = useState<{ date: string; exercises: { name: string; done: boolean }[] | null }[]>([]);
+  const [details, setDetails] = useState<{ date: string; workouts: WorkoutDetail[] }[]>([]);
 
   useEffect(() => {
+    const plan = ensureWeekPlan();
     const c: { date: string; status: "none" | "partial" | "done" }[] = [];
-    const d: { date: string; exercises: { name: string; done: boolean }[] | null }[] = [];
+    const d: { date: string; workouts: WorkoutDetail[] }[] = [];
+
     for (let offset = -(DAYS - 1); offset <= 0; offset++) {
       const dk = dateKeyForOffset(offset);
-      const exChecks = store.getExerciseChecks(dk);
-      const doneBool = store.isWorkoutDone(dk);
-      let status: "none" | "partial" | "done" = "none";
+      const dayIndex = isoDayIndex(new Date(dk + "T00:00:00"));
+      const workouts = plan[dayIndex].workouts;
 
-      if (exChecks && exChecks.length > 0) {
-        const doneCount = exChecks.filter((e) => e.done).length;
-        status = doneCount === 0 ? "none" : doneCount === exChecks.length ? "done" : "partial";
-        if (doneCount > 0) d.push({ date: dk, exercises: exChecks });
-      } else if (doneBool) {
-        status = "done";
-        d.push({ date: dk, exercises: null });
+      let doneWorkouts = 0;
+      let startedWorkouts = 0;
+      const dayDetails: WorkoutDetail[] = [];
+
+      for (const w of workouts) {
+        if (w.exercises.length > 0) {
+          const checks = store.getExerciseChecks(dk, w.id);
+          const doneCount = checks ? checks.filter((e) => e.done).length : 0;
+          if (doneCount > 0) {
+            startedWorkouts++;
+            dayDetails.push({ name: w.name || "Entreno", exercises: checks });
+          }
+          if (checks && checks.length > 0 && doneCount === checks.length) doneWorkouts++;
+        } else if (store.isWorkoutDone(dk, w.id)) {
+          doneWorkouts++;
+          startedWorkouts++;
+          dayDetails.push({ name: w.name || "Entreno", exercises: null });
+        }
+      }
+
+      let status: "none" | "partial" | "done" = "none";
+      if (workouts.length > 0 && startedWorkouts > 0) {
+        status = doneWorkouts === workouts.length ? "done" : "partial";
       }
       c.push({ date: dk, status });
+      if (dayDetails.length > 0) d.push({ date: dk, workouts: dayDetails });
     }
     setCells(c);
     setDetails(d);
@@ -233,15 +256,22 @@ function EntrenosSection() {
           .map((d) => (
             <div key={d.date} className="mb-3 last:mb-0">
               <span className="text-dim text-[13px] font-mono block mb-1">{formatDateLabel(d.date)}</span>
-              {d.exercises ? (
-                d.exercises.map((e, i) => (
-                  <span key={i} className="block text-[14px]">
-                    {e.done ? "✓" : "✗"} {e.name}
-                  </span>
-                ))
-              ) : (
-                <span className="text-[14px]">✓ Entreno hecho</span>
-              )}
+              {d.workouts.map((w, wi) => (
+                <div key={wi} className="mb-1.5 last:mb-0">
+                  {w.exercises ? (
+                    <>
+                      <span className="block text-[14px] text-dim">{w.name}</span>
+                      {w.exercises.map((e, i) => (
+                        <span key={i} className="block text-[14px]">
+                          {e.done ? "✓" : "✗"} {e.name}
+                        </span>
+                      ))}
+                    </>
+                  ) : (
+                    <span className="text-[14px]">✓ {w.name}</span>
+                  )}
+                </div>
+              ))}
             </div>
           ))}
       </Card>

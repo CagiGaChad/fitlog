@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/Card";
 import { store } from "@/lib/storage";
-import { ensureWeekPlan } from "@/lib/state";
-import type { WeekPlan } from "@/lib/types";
+import { ensureWeekPlan, newWorkout } from "@/lib/state";
+import type { WeekPlan, Workout } from "@/lib/types";
 
 export default function EntrenosPage() {
   const [ready, setReady] = useState(false);
@@ -17,10 +17,26 @@ export default function EntrenosPage() {
 
   if (!ready) return null;
 
-  function updateDay(i: number, patch: Partial<WeekPlan[number]>) {
-    const next = plan.map((d, idx) => (idx === i ? { ...d, ...patch } : d));
+  function savePlan(next: WeekPlan) {
     setPlan(next);
     store.setWeekPlan(next);
+  }
+
+  function addWorkout(dayIndex: number) {
+    savePlan(plan.map((d, i) => (i === dayIndex ? { ...d, workouts: [...d.workouts, newWorkout()] } : d)));
+  }
+
+  function updateWorkout(dayIndex: number, workoutId: string, patch: Partial<Workout>) {
+    savePlan(
+      plan.map((d, i) =>
+        i === dayIndex ? { ...d, workouts: d.workouts.map((w) => (w.id === workoutId ? { ...w, ...patch } : w)) } : d
+      )
+    );
+  }
+
+  function removeWorkout(dayIndex: number, workoutId: string) {
+    if (!confirm("¿Eliminar este entreno?")) return;
+    savePlan(plan.map((d, i) => (i === dayIndex ? { ...d, workouts: d.workouts.filter((w) => w.id !== workoutId) } : d)));
   }
 
   return (
@@ -31,43 +47,88 @@ export default function EntrenosPage() {
       </div>
       <Card variant="flat">
         <p className="text-dim text-sm">
-          Define lo que entrenas cada día. Se repite cada semana — edítalo cuando cambies de rutina.
+          Define lo que entrenas cada día — puedes añadir más de un entreno el mismo día (ej. Fuerza y Natación por
+          separado). Se repite cada semana.
         </p>
       </Card>
 
-      <Card>
-        {plan.map((d, i) => (
-          <div key={d.day} className="flex gap-3 py-3 border-b border-line last:border-0 first:pt-0">
-            <span className="text-dim text-[13px] font-mono pt-2.5 w-9 shrink-0">{d.day.slice(0, 3)}</span>
-            <div className="flex-1 flex flex-col gap-1.5">
-              <input
-                type="text"
-                placeholder="Descanso"
-                value={d.name}
-                onChange={(e) => updateDay(i, { name: e.target.value })}
-              />
-              <textarea
-                placeholder="Notas (ej. piernas + core, 45 min)"
-                value={d.notes}
-                onChange={(e) => updateDay(i, { notes: e.target.value })}
-              />
-              <label className="block text-dim text-[12px] mt-1">Ejercicios (opcional, uno por línea)</label>
-              <textarea
-                placeholder={"Sentadilla\nZancadas\nPrensa"}
-                value={(d.exercises || []).join("\n")}
-                onChange={(e) =>
-                  updateDay(i, {
-                    exercises: e.target.value
-                      .split("\n")
-                      .map((s) => s.trim())
-                      .filter(Boolean),
-                  })
-                }
-              />
-            </div>
+      {plan.map((d, dayIndex) => (
+        <Card key={d.day}>
+          <div className="flex items-center justify-between mb-3">
+            <h3>{d.day}</h3>
+            <button onClick={() => addWorkout(dayIndex)} className="text-accent text-[13px] font-medium">
+              + Añadir entreno
+            </button>
           </div>
-        ))}
-      </Card>
+
+          {d.workouts.length === 0 && <p className="text-dim text-sm py-1">Descanso</p>}
+
+          <div className="flex flex-col gap-4">
+            {d.workouts.map((w) => (
+              <div key={w.id} className="bg-surface-2 rounded-[10px] p-3">
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    placeholder="Nombre del entreno (ej. Fuerza)"
+                    value={w.name}
+                    onChange={(e) => updateWorkout(dayIndex, w.id, { name: e.target.value })}
+                    className="flex-1"
+                  />
+                  <button
+                    onClick={() => removeWorkout(dayIndex, w.id)}
+                    className="shrink-0 h-[42px] w-[42px] rounded-[10px] border border-line text-dim"
+                    title="Eliminar entreno"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <textarea
+                  placeholder="Notas (ej. piernas + core, 45 min)"
+                  value={w.notes}
+                  onChange={(e) => updateWorkout(dayIndex, w.id, { notes: e.target.value })}
+                  className="mb-2 min-h-[52px]"
+                />
+                <label className="block text-dim text-[12px] mb-1">Ejercicios (opcional, uno por línea)</label>
+                <ExercisesEditor
+                  exercises={w.exercises}
+                  onSave={(exercises) => updateWorkout(dayIndex, w.id, { exercises })}
+                />
+              </div>
+            ))}
+          </div>
+        </Card>
+      ))}
     </>
+  );
+}
+
+// Textarea "sin control" para la lista de ejercicios: si reformateáramos el
+// valor en cada pulsación (quitando líneas vacías al vuelo), el cursor
+// saltaría mientras escribes. En vez de eso, el texto libre vive en estado
+// local y solo se limpia/guarda al salir del campo.
+function ExercisesEditor({ exercises, onSave }: { exercises: string[]; onSave: (exercises: string[]) => void }) {
+  const [text, setText] = useState(exercises.join("\n"));
+
+  useEffect(() => {
+    setText(exercises.join("\n"));
+  }, [exercises]);
+
+  function commit(value: string) {
+    onSave(
+      value
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    );
+  }
+
+  return (
+    <textarea
+      placeholder={"Sentadilla\nZancadas\nPrensa"}
+      value={text}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={(e) => commit(e.target.value)}
+      className="min-h-[220px]"
+    />
   );
 }

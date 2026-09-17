@@ -166,6 +166,7 @@ export default function ComidasPage() {
 
   if (!ready) return null;
 
+  const isToday = currentDate === todayKey();
   const byMeal = MEALS.map((m) => ({ meal: m, items: entries.filter((e) => e.meal === m) })).filter(
     (g) => g.items.length > 0
   );
@@ -233,7 +234,11 @@ export default function ComidasPage() {
         </button>
       </Card>
 
-      {entries.length === 0 ? (
+      {isToday ? (
+        <p className="text-dim text-sm text-center py-6">
+          Lo que registres hoy aparece en la pestaña <span className="text-text">Hoy</span>.
+        </p>
+      ) : entries.length === 0 ? (
         <div className="text-dim text-sm text-center py-8">Todavía no has registrado nada este día.</div>
       ) : (
         byMeal.map((g) => (
@@ -291,9 +296,10 @@ function FoodList({
             <span className="font-mono text-dim text-[13px] mr-2">{f.kcal100} kcal/100g</span>
             <button
               onClick={() => onToggleFav(f)}
-              className={`text-lg ${isFav ? "text-amber" : "text-dim"}`}
+              className="text-xl leading-none"
+              style={{ color: isFav ? "#f4c430" : "var(--text-dim)" }}
             >
-              ★
+              {isFav ? "★" : "☆"}
             </button>
           </div>
         );

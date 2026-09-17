@@ -13,6 +13,10 @@ const KEYS = {
   favorites: "fitlog_favorite_foods",
 };
 
+// Id fijo usado para el único entreno implícito de los planes guardados
+// antes de soportar varios entrenos por día.
+export const LEGACY_WORKOUT_ID = "legacy";
+
 function read<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
   try {
@@ -68,18 +72,27 @@ export const store = {
     write(KEYS.logPrefix + dateKey, entries);
   },
 
-  isWorkoutDone(dateKey: string): boolean {
-    return read<boolean>(KEYS.donePrefix + dateKey, false);
+  // workoutId "legacy" cae de vuelta a la clave antigua (sin sufijo) si no
+  // hay todavía una nueva, para no perder el historial previo a poder tener
+  // varios entrenos el mismo día.
+  isWorkoutDone(dateKey: string, workoutId: string): boolean {
+    const val = read<boolean | null>(KEYS.donePrefix + dateKey + "_" + workoutId, null);
+    if (val !== null) return val;
+    if (workoutId === LEGACY_WORKOUT_ID) return read<boolean>(KEYS.donePrefix + dateKey, false);
+    return false;
   },
-  setWorkoutDone(dateKey: string, done: boolean) {
-    write(KEYS.donePrefix + dateKey, done);
+  setWorkoutDone(dateKey: string, workoutId: string, done: boolean) {
+    write(KEYS.donePrefix + dateKey + "_" + workoutId, done);
   },
 
-  getExerciseChecks(dateKey: string): ExerciseCheck[] | null {
-    return read<ExerciseCheck[] | null>(KEYS.exercisesPrefix + dateKey, null);
+  getExerciseChecks(dateKey: string, workoutId: string): ExerciseCheck[] | null {
+    const val = read<ExerciseCheck[] | null>(KEYS.exercisesPrefix + dateKey + "_" + workoutId, null);
+    if (val !== null) return val;
+    if (workoutId === LEGACY_WORKOUT_ID) return read<ExerciseCheck[] | null>(KEYS.exercisesPrefix + dateKey, null);
+    return null;
   },
-  setExerciseChecks(dateKey: string, list: ExerciseCheck[]) {
-    write(KEYS.exercisesPrefix + dateKey, list);
+  setExerciseChecks(dateKey: string, workoutId: string, list: ExerciseCheck[]) {
+    write(KEYS.exercisesPrefix + dateKey + "_" + workoutId, list);
   },
 
   getWeightLog(): WeightEntry[] {
