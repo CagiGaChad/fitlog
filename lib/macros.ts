@@ -1,6 +1,7 @@
 // Fórmula de Mifflin-St Jeor + factor de actividad + reparto de macros según objetivo.
+import type { ActivityId, GoalType, Goals, LogEntry, Profile, Sex, Totals } from "./types";
 
-export const ACTIVITY_LEVELS = [
+export const ACTIVITY_LEVELS: { id: ActivityId; label: string; factor: number }[] = [
   { id: "sedentario", label: "Sedentario (poco o nada de ejercicio)", factor: 1.2 },
   { id: "ligero", label: "Ligero (1-3 días/semana)", factor: 1.375 },
   { id: "moderado", label: "Moderado (3-5 días/semana)", factor: 1.55 },
@@ -8,23 +9,40 @@ export const ACTIVITY_LEVELS = [
   { id: "muy_activo", label: "Muy activo (entreno intenso a diario)", factor: 1.9 },
 ];
 
-export const GOALS = [
+export const GOALS: { id: GoalType; label: string }[] = [
   { id: "perder", label: "Perder grasa" },
   { id: "mantener", label: "Mantener" },
   { id: "ganar", label: "Ganar músculo" },
 ];
 
-export function calcBMR({ weight, height, age, sex }) {
+export function calcBMR({
+  weight,
+  height,
+  age,
+  sex,
+}: {
+  weight: number;
+  height: number;
+  age: number;
+  sex: Sex;
+}): number {
   const base = 10 * weight + 6.25 * height - 5 * age;
   return sex === "mujer" ? base - 161 : base + 5;
 }
 
-export function calcGoals(profile) {
+export function calcGoals(profile: {
+  weight: number;
+  height: number;
+  age: number;
+  sex: Sex;
+  activity: ActivityId;
+  goalType: GoalType;
+}): Goals {
   const activity = ACTIVITY_LEVELS.find((a) => a.id === profile.activity) || ACTIVITY_LEVELS[1];
   const bmr = calcBMR(profile);
   const tdee = bmr * activity.factor;
 
-  let calories, proteinPerKg, fatPct;
+  let calories: number, proteinPerKg: number, fatPct: number;
   if (profile.goalType === "perder") {
     calories = tdee * 0.8;
     proteinPerKg = 2.2;
@@ -55,7 +73,7 @@ export function calcGoals(profile) {
 }
 
 // Objetivo real: los overrides manuales de Ajustes pisan al cálculo automático, campo a campo.
-export function activeGoals(profile) {
+export function activeGoals(profile: Profile): Goals {
   const calculated = calcGoals(profile);
   if (!profile.overrides) return calculated;
   return {
@@ -67,7 +85,7 @@ export function activeGoals(profile) {
   };
 }
 
-export function sumLog(entries) {
+export function sumLog(entries: LogEntry[]): Totals {
   return entries.reduce(
     (acc, e) => {
       acc.calories += e.kcal;

@@ -1,0 +1,176 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #151513;
+  --surface: #1f1f1c;
+  --surface-2: #292926;
+  --border: #35352f;
+  --text: #f0ede4;
+  --text-dim: #9c9a92;
+  --accent: #4a8bb8;
+  --accent-dim: #3a6d8f;
+  --amber: #d9a441;
+  --protein: #c1683e;
+  --fat: #7a9b5c;
+  --danger: #c1573e;
+  --good: #6ea86e;
+  --radius: 14px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--border);
+  --color-text: var(--text);
+  --color-dim: var(--text-dim);
+  --color-accent: var(--accent);
+  --color-accent-dim: var(--accent-dim);
+  --color-amber: var(--amber);
+  --color-protein: var(--protein);
+  --color-fat: var(--fat);
+  --color-danger: var(--danger);
+  --color-good: var(--good);
+  --font-display: var(--font-barlow), sans-serif;
+  --font-sans: var(--font-inter), sans-serif;
+  --font-mono: var(--font-plex-mono), monospace;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  overscroll-behavior-y: none;
+}
+
+body {
+  font-family: var(--font-sans);
+  padding-top: var(--safe-top);
+  padding-bottom: calc(76px + var(--safe-bottom));
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  margin: 0;
+}
+
+input,
+select,
+textarea,
+button {
+  font-family: inherit;
+  color: inherit;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 12px;
+  font-size: 15px;
+  outline: none;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--accent);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 44px;
+}
+
+/* Escáner de código de barras (montado directamente en document.body, fuera de React) */
+.scan-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.scan-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.scan-frame {
+  position: relative;
+  width: 78%;
+  max-width: 340px;
+  aspect-ratio: 16 / 9;
+  border: 2px solid var(--accent);
+  border-radius: 14px;
+  box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.45);
+}
+.scan-hint {
+  position: relative;
+  color: #fff;
+  margin-top: 18px;
+  font-size: 14px;
+  text-align: center;
+  padding: 0 24px;
+}
+.scan-cancel {
+  position: absolute;
+  bottom: calc(32px + var(--safe-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Racha de entrenos */
+.streak-grid {
+  display: grid;
+  grid-template-columns: repeat(14, 1fr);
+  gap: 4px;
+  margin-top: 10px;
+}
+.streak-cell {
+  aspect-ratio: 1;
+  border-radius: 4px;
+  background: var(--surface-2);
+}
+.streak-cell.done {
+  background: var(--good);
+}
+.streak-cell.partial {
+  background: var(--amber);
+}
+.streak-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  margin-right: 5px;
+  vertical-align: middle;
+  background: var(--surface-2);
+}
+.streak-dot.done {
+  background: var(--good);
+}
+.streak-dot.partial {
+  background: var(--amber);
+}

@@ -1,16 +1,18 @@
 # FitLog
 
-App personal de macros y entrenamientos. Es una web estática (sin build, sin
-Node, sin dependencias) que instalas en tu iPhone como PWA.
+App personal de macros y entrenamientos. Next.js (App Router) + TypeScript +
+Tailwind, exportada como sitio estático y publicada en GitHub Pages —
+instálala en tu iPhone como PWA.
 
 ## Qué incluye
 
 - **Hoy**: resumen de macros del día vs tu objetivo, y el entreno programado
   — si el día tiene ejercicios, aparecen como checklist individual.
 - **Comidas**: busca alimentos en Open Food Facts (base pública gratuita),
-  crea tus propios alimentos frecuentes (se guardan en el teléfono), marca
-  favoritos con la estrella, y ve tus alimentos recientes sin rebuscar.
-  Registra cantidades por comida (desayuno/comida/merienda/cena).
+  escanea el código de barras con la cámara, crea tus propios alimentos
+  frecuentes, marca favoritos con la estrella, y ve tus alimentos recientes
+  sin rebuscar. Registra cantidades por comida (desayuno/comida/merienda/
+  cena).
 - **Entrenos**: plantilla semanal simple (día + nombre + notas), con una
   lista opcional de ejercicios (uno por línea). Se repite cada semana.
 - **Progreso**: registro de peso corporal con gráfica de evolución,
@@ -19,32 +21,34 @@ Node, sin dependencias) que instalas en tu iPhone como PWA.
   de qué ejercicios hiciste cada día.
 - **Ajustes**: tus datos (peso, altura, edad, sexo, actividad, objetivo) →
   calcula calorías y macros automáticamente (fórmula Mifflin-St Jeor), y
-  puedes ajustarlos a mano si quieres afinar.
+  puedes ajustarlos a mano si quieres afinar. Copia de seguridad
+  exportar/importar en JSON.
 
-Todos tus datos se guardan **solo en tu iPhone** (localStorage del
-navegador). No hay servidor, no hay cuenta, no se envía nada a ningún sitio
-excepto la búsqueda de alimentos a Open Food Facts.
+Todos tus datos se guardan **solo en tu navegador** (localStorage). No hay
+servidor, no hay cuenta, no se envía nada a ningún sitio excepto la
+búsqueda de alimentos a Open Food Facts.
 
-## Desplegar (elige uno, los tres son gratis)
+## Desarrollo local
 
-### Vercel
-1. Crea un repo nuevo en GitHub y sube esta carpeta (o usa `vercel` CLI
-   directamente sobre la carpeta).
-2. En vercel.com → "Add New Project" → importa el repo.
-3. Framework preset: **Other** (no hay build). Build command: vacío. Output
-   directory: `.` (la raíz).
-4. Deploy. Te da una URL tipo `fitlog-tuusuario.vercel.app`.
+```
+npm install
+npm run dev
+```
 
-### Netlify
-1. netlify.com → "Add new site" → "Deploy manually" → arrastra esta carpeta
-   completa (o conecta el repo de GitHub).
-2. No hace falta build command ni carpeta de publicación especial (deja la
-   raíz).
+Abre `http://localhost:3000`.
 
-### GitHub Pages
-1. Sube esta carpeta a un repo de GitHub.
-2. Settings → Pages → Deploy from branch → rama `main`, carpeta `/root`.
-3. Te da una URL tipo `tuusuario.github.io/fitlog`.
+## Build y despliegue
+
+Se despliega como export estático en GitHub Pages
+(`cagigachad.github.io/fitlog`) mediante el workflow de
+`.github/workflows/deploy.yml`: cada push a `master` compila con
+`npm run build` (genera la carpeta `out/`) y lo publica automáticamente.
+
+Para generar el export a mano:
+
+```
+npm run build
+```
 
 ## Instalar en el iPhone
 
@@ -62,31 +66,28 @@ Cuando quieras retomarlo, las dos vías realistas son:
 - Programa oficial de desarrolladores de Garmin (requiere solicitud y
   aprobación, pensado para empresas/partners).
 - Librería no oficial que emula el login de la app — funciona, pero
-  necesita un servidor propio (esto ya no es una web estática) y guardar tus
-  credenciales de Garmin ahí.
+  necesita un servidor propio (esto ya no es un export estático) y guardar
+  tus credenciales de Garmin ahí.
 
 ## Estructura del proyecto
 
 ```
-index.html          Punto de entrada
-styles.css           Estilos (una sola hoja, con variables de color)
-manifest.json        Configuración de la PWA (icono, nombre, colores)
-sw.js                Service worker (cache offline del "shell" de la app)
-icons/               Iconos de la app
-js/
-  app.js             Navegación entre pestañas
-  storage.js         Lectura/escritura en localStorage
-  macros.js          Cálculo de TMB/TDEE/objetivos de macros
-  foodApi.js         Búsqueda en Open Food Facts
-  state.js           Helpers de estado compartido
-  views/
-    today.js         Pestaña "Hoy"
-    comidas.js        Pestaña "Comidas"
-    entrenos.js       Pestaña "Entrenos"
-    progreso.js       Pestaña "Progreso"
-    ajustes.js        Pestaña "Ajustes"
+app/
+  page.tsx           Pestaña "Hoy"
+  comidas/page.tsx    Pestaña "Comidas"
+  entrenos/page.tsx   Pestaña "Entrenos"
+  progreso/page.tsx   Pestaña "Progreso"
+  ajustes/page.tsx    Pestaña "Ajustes"
+  layout.tsx          Layout raíz (fuentes, tab bar, service worker)
+  manifest.ts          Manifest de la PWA
+components/           UI compartida (Card, MacroBar, TabBar, Modal, iconos, gráficas)
+lib/
+  storage.ts           Lectura/escritura en localStorage (mismas claves que la versión anterior)
+  macros.ts            Cálculo de TMB/TDEE/objetivos de macros
+  foodApi.ts            Búsqueda en Open Food Facts
+  barcodeScanner.ts     Escaneo de código de barras (@zxing/browser)
+  state.ts              Helpers de estado compartido
+public/
+  sw.js                 Service worker (cache runtime, offline)
+  icons/                Iconos de la app
 ```
-
-No hay build ni dependencias que instalar — es HTML/CSS/JS puro con módulos
-ES nativos del navegador, así que cualquiera de los tres despliegues de
-arriba funciona subiendo la carpeta tal cual.

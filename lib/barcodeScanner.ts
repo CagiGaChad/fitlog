@@ -1,18 +1,20 @@
 // Escaneo de códigos de barras (EAN-13/UPC de productos envasados) con la cámara.
-// Usa ZXing (vendorizado en js/vendor/zxing.min.js, expone window.ZXing) para
-// que funcione también en Safari/iOS, que no soporta la BarcodeDetector nativa.
+// Usa @zxing/browser, que funciona también en Safari/iOS (no soporta el
+// BarcodeDetector nativo).
+"use client";
 
-let reader = null;
+import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
 
-function ensureReader() {
-  if (!window.ZXing) throw new Error("Librería de escaneo no disponible");
-  if (!reader) reader = new window.ZXing.BrowserMultiFormatReader();
+let reader: BrowserMultiFormatReader | null = null;
+
+function ensureReader(): BrowserMultiFormatReader {
+  if (!reader) reader = new BrowserMultiFormatReader();
   return reader;
 }
 
 // Abre un overlay a pantalla completa con la cámara y devuelve una Promise que
 // resuelve con el código de barras leído, o con null si el usuario cancela.
-export function scanBarcode() {
+export function scanBarcode(): Promise<string | null> {
   return new Promise((resolve) => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       alert("Este navegador no permite acceder a la cámara.");
@@ -30,12 +32,12 @@ export function scanBarcode() {
     `;
     document.body.appendChild(overlay);
 
-    const video = overlay.querySelector(".scan-video");
-    const cancelBtn = overlay.querySelector(".scan-cancel");
+    const video = overlay.querySelector(".scan-video") as HTMLVideoElement;
+    const cancelBtn = overlay.querySelector(".scan-cancel") as HTMLButtonElement;
     let done = false;
-    let controls = null;
+    let controls: IScannerControls | null = null;
 
-    function finish(result) {
+    function finish(result: string | null) {
       if (done) return;
       done = true;
       if (controls) controls.stop();
@@ -45,21 +47,13 @@ export function scanBarcode() {
 
     cancelBtn.addEventListener("click", () => finish(null));
 
-    let rdr;
-    try {
-      rdr = ensureReader();
-    } catch (e) {
-      overlay.remove();
-      alert(e.message);
-      resolve(null);
-      return;
-    }
+    const rdr = ensureReader();
 
     rdr
       .decodeFromConstraints(
         { audio: false, video: { facingMode: "environment" } },
         video,
-        (result, err) => {
+        (result) => {
           if (result) finish(result.getText());
         }
       )
